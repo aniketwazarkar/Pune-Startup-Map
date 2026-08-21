@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pune-startup-map-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://frontend-three-flame-98.vercel.app
+      - key: MONGODB_URI
+        sync: false
+      - key: LOGO_DEV_TOKEN
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

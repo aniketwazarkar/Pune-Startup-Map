@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pune Startup Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+Devanagari:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ECEDE2;
+    --paper-raised:#F5F5EC;
+    --ink:#1C2B22;
+    --ink-soft:#4B5A4F;
+    --ochre:#D9971F;
+    --ochre-soft:#F3DDA9;
+    --teal:#1F6F63;
+    --teal-soft:#D9E8E3;
+    --brick:#A8432E;
+    --brick-soft:#F0DAD3;
+    --line:rgba(28,43,34,0.14);
+    --line-strong:rgba(28,43,34,0.28);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 60px;}
+
+  /* ---------- Header ---------- */
+  header{
+    position:relative;
+    padding:44px 0 26px;
+    border-bottom:1px solid var(--line-strong);
+    overflow:hidden;
+  }
+  .devnagari-watermark{
+    position:absolute;
+    top:40px; right:-10px;
+    font-family:'Noto Serif Devanagari','Fraunces',serif;
+    font-size:190px;
+    font-weight:600;
+    color:var(--ink);
+    opacity:0.05;
+    letter-spacing:0;
+    pointer-events:none;
+    user-select:none;
+    line-height:1;
+  }
+  .contour{
+    position:absolute; left:0; right:0; bottom:0;
+    height:64px;
+    opacity:0.5;
+    pointer-events:none;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--teal);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--ochre);
+    display:inline-block;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(34px,5.4vw,54px);
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+    position:relative;
+    z-index:1;
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--teal);
+  }
+  .subtitle{
+    max-width:560px;
+    color:var(--ink-soft);
+    font-size:15.5px;
+    line-height:1.55;
+    position:relative;
+    z-index:1;
+  }
+  .header-actions{
+    margin-top:22px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:0.02em;
+    padding:10px 16px;
+    border-radius:3px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    color:var(--ink);
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .btn:hover{background:#fff;}
+  .btn.primary{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  .btn.primary:hover{background:#2c3f31;}
+
+  /* ---------- Controls ---------- */
+  .controls{
+    position:sticky; top:0; z-index:50;
+    background:var(--paper);
+    padding:16px 0;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-top:6px;
+  }
+  .view-toggle{
+    display:flex;
+    border:1px solid var(--line-strong);
+    border-radius:3px;
+    overflow:hidden;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+  }
+  .view-toggle button{
+    padding:9px 15px;
+    background:var(--paper-raised);
+    border:none;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .view-toggle button.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  select{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    padding:9px 30px 9px 12px;
+    border-radius:3px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0L5 6L10 0Z' fill='%234B5A4F'/></svg>") no-repeat right 12px center;
+    -webkit-appearance:none; appearance:none;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  select:focus, .btn:focus, button:focus{outline:2px solid var(--teal); outline-offset:1px;}
+  .result-count{
+    margin-left:auto;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .result-count b{color:var(--ink); font-size:14px;}
+
+  /* ---------- Map view ---------- */
+  #mapview{
+    --map-gutter:clamp(28px, 5vw, 72px);
+    margin-top:20px;
+    width:calc(100vw - (var(--map-gutter) * 2));
+    margin-left:calc(50% - 50vw + var(--map-gutter));
+    margin-right:calc(50% - 50vw + var(--map-gutter));
+    height:78vh;
+    min-height:560px;
+    max-height:860px;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .leaflet-popup-content-wrapper{
+    background:var(--paper-raised);
+    color:var(--ink);
+    border-radius:4px;
+    font-family:'IBM Plex Sans',sans-serif;
+  }
+  .popup-name{font-family:'Fraunces',serif; font-weight:600; font-size:16px; margin-bottom:4px;}
+  .popup-tags{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;}
+  .popup-blurb{font-size:13px; color:var(--ink-soft); line-height:1.45;}
+  .logo-pin{
+    border-radius:50%;
+    background:#fff;
+    border:2.5px solid var(--line-strong);
+    box-shadow:0 1px 4px rgba(0,0,0,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .logo-pin img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    padding:3px;
+    background:#fff;
+  }
+  .logo-pin-fallback{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    color:#fff;
+  }
+  .cluster-badge{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background:var(--teal);
+    color:#fff;
+    border:2px solid rgba(255,255,255,0.85);
+    box-shadow:0 2px 6px rgba(0,0,0,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+  }
+  .marker-cluster{ background:transparent; }
+
+  /* ---------- Fullscreen map ---------- */
+  .fullscreen-control a{
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px;
+    font-size:16px;
+    color:var(--ink);
+    background:var(--paper-raised);
+    text-decoration:none;
+  }
+  .fullscreen-control a:hover{background:#fff;}
+  #mapview:fullscreen{
+    width:100vw; height:100vh; max-height:none; min-height:0; margin:0;
+    border:none;
+  }
+  #mapview:-webkit-full-screen{
+    width:100vw; height:100vh; max-height:none; min-height:0; margin:0;
+    border:none;
+  }
+
+  /* ---------- Grid view ---------- */
+  #gridview{
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(268px,1fr));
+    gap:14px;
+  }
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:border-color .15s ease, transform .12s ease;
+  }
+  .card:hover{border-color:var(--line-strong); transform:translateY(-2px);}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .card-name{font-family:'Fraunces',serif; font-weight:600; font-size:18px; line-height:1.25;}
+  .type-dot{
+    width:9px;height:9px;border-radius:50%;
+    flex-shrink:0; margin-top:6px;
+  }
+  .card-area{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    letter-spacing:0.02em;
+  }
+  .card-blurb{font-size:13.5px; color:var(--ink-soft); line-height:1.5; flex:1;}
+  .tag-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    padding:4px 8px;
+    border-radius:20px;
+    letter-spacing:0.02em;
+  }
+  .tag.sector{background:var(--teal-soft); color:var(--teal);}
+  .tag.stage{background:var(--ochre-soft); color:#8a5f0e;}
+  .tag.vc{background:var(--brick-soft); color:var(--brick);}
+
+  .empty{
+    grid-column:1/-1;
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+  }
+
+  footer{
+    margin-top:40px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    text-align:center;
+  }
+  footer a{color:var(--teal);}
+
+  .card{cursor:pointer;}
+  .popup-more{
+    display:inline-block;
+    margin-top:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--teal);
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  /* ---------- Detail modal ---------- */
+  .modal-backdrop{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(28,43,34,0.45);
+    z-index:10000;
+    align-items:flex-start;
+    justify-content:center;
+    padding:5vh 16px;
+    overflow-y:auto;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--paper-raised);
+    border-radius:8px;
+    max-width:560px;
+    width:100%;
+    padding:30px 30px 26px;
+    position:relative;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  }
+  .modal-close{
+    position:absolute; top:16px; right:16px;
+    width:30px;height:30px;
+    border-radius:50%;
+    border:1px solid var(--line-strong);
+    background:var(--paper);
+    color:var(--ink);
+    font-size:16px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    letter-spacing:0.03em;
+    margin-bottom:6px;
+  }
+  .modal-name{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:28px;
+    margin:0 0 12px;
+    padding-right:30px;
+    line-height:1.15;
+  }
+  .modal-tags{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;}
+  .modal-section{margin-bottom:14px;}
+  .modal-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .modal-value{font-size:14.5px; line-height:1.55;}
+  .modal-facts{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin:16px 0;
+    padding:14px 0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+  .modal-link{
+    display:inline-block;
+    margin-top:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--teal);
+  }
+
+  @media (max-width:640px){
+    #mapview{height:65vh; min-height:420px;}
+    .controls{gap:8px;}
+    select{flex:1 1 45%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="devnagari-watermark">पुणे</div>
+    <svg class="contour" viewBox="0 0 1180 64" preserveAspectRatio="none">
+      <path d="M0 50 Q 90 20 180 44 T 360 40 T 540 50 T 720 30 T 900 46 T 1180 34" fill="none" stroke="#1F6F63" stroke-width="1.4"/>
+      <path d="M0 60 Q 100 34 200 54 T 400 50 T 600 60 T 800 42 T 1000 56 T 1180 46" fill="none" stroke="#D9971F" stroke-width="1.2"/>
+    </svg>
+    <div class="eyebrow">411 001 &mdash; 411 057 &amp; growing</div>
+    <h1>Pune Startup <em>Map</em></h1>
+    <p class="subtitle">A directory of startups founded or based in Pune — from the SaaS towers of Baner to the logistics yards of Magarpatta. Browse by peth, stage, and sector.</p>
+    <div class="header-actions">
+      <a class="btn primary" href="#" onclick="alert('This is a demo — wire this up to a form (e.g. Google Form or Airtable) to accept real submissions.'); return false;">+ Submit a startup</a>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft);">seed dataset · verify before relying on it</span>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="view-toggle">
+      <button id="btn-map" class="active">map</button>
+      <button id="btn-grid">grid</button>
+    </div>
+    <select id="f-type"></select>
+    <select id="f-area"></select>
+    <select id="f-stage"></select>
+    <select id="f-sector"></select>
+    <div class="result-count"><b id="count">0</b>&nbsp;results</div>
+  </div>
+
+  <div id="mapview"></div>
+  <div id="gridview" style="display:none;"></div>
+
+  <footer>
+    Made with ❤️ by aniketwazarkar
+  </footer>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+const SECTOR_COLORS = {
+  "SaaS":"#1F6F63", "Fintech":"#D9971F", "Logistics":"#A8432E", "D2C":"#B5578B",
+  "Mobility":"#3E6FA8", "Deeptech":"#6B4E9C", "Healthtech":"#2E9E6B",
+  "Agritech":"#7A8C2E", "Cybersecurity":"#4B4B4B", "AI":"#C4571F",
+  "Edtech":"#1F86A8", "Other":"#8A8F79"
+};
+
+const DATA = [
+  {name:"FirstCry", area:"Kalyani Nagar", type:"Startup", stage:"Public", sector:"D2C",
+   lat:18.5490, lng:73.9020, blurb:"India's largest baby & kids retail platform; listed on the NSE and BSE in 2024.",
+   founded:"2010", founders:"Supam Maheshwari, Amitava Saha", website:"https://www.firstcry.com"},
+  {name:"Xpressbees", area:"Kalyani Nagar", type:"Startup", stage:"Series C+", sector:"Logistics",
+   lat:18.5478, lng:73.9008, blurb:"E-commerce logistics network spun off from FirstCry, delivering across 20,000+ pin codes.",
+   founded:"2015", founders:"Amitava Saha", website:"https://www.xpressbees.com"},
+  {name:"ElasticRun", area:"Pimple Saudagar", type:"Startup", stage:"Series C+", sector:"Logistics",
+   lat:18.5989, lng:73.7997, blurb:"Tech-led distribution platform connecting FMCG brands to rural kirana stores.",
+   founded:"2016", founders:"Saurabh Nigam, Sandeep Deshmukh, Shitiz Bansal", website:"https://www.elastic.run"},
+  {name:"Druva", area:"Baner", type:"Startup", stage:"Series C+", sector:"SaaS",
+   lat:18.5601, lng:73.7845, blurb:"Cloud-native data protection and cyber-resilience platform — one of Pune's earliest unicorns.",
+   founded:"2008", founders:"Jaspreet Singh, Milind Borate", website:"https://www.druva.com"},
+  {name:"MindTickle", area:"Baner", type:"Startup", stage:"Series C+", sector:"SaaS",
+   lat:18.5578, lng:73.7889, blurb:"AI-powered sales readiness and revenue-enablement platform; APAC HQ in Baner.",
+   founded:"2011", founders:"Krishna Depura, Nishant Mungali, Mohit Garg, Deepak Diwakar", website:"https://www.mindtickle.com"},
+  {name:"Icertis", area:"Yerwada", type:"Startup", stage:"Series C+", sector:"SaaS",
+   lat:18.5580, lng:73.8830, blurb:"Enterprise contract-lifecycle-management platform born in Pune in 2009; large engineering base here.",
+   founded:"2009", founders:"Samir Bodas, Monish Darda", website:"https://www.icertis.com"},
+  {name:"FPL Technologies (OneCard)", area:"Viman Nagar", type:"Startup", stage:"Series C+", sector:"Fintech",
+   lat:18.5679, lng:73.9143, blurb:"Mobile-first metal credit card and free credit-score app — OneCard and OneScore.",
+   founded:"2019", founders:"Anurag Sinha, Rupesh Kumar, Vibhav Hathi", website:"https://www.getonecard.app"},
+  {name:"KPIT Technologies", area:"Hinjewadi", type:"Startup", stage:"Public", sector:"Mobility",
+   lat:18.5912, lng:73.7389, blurb:"Software and engineering for the automotive and mobility industry, listed on the NSE/BSE.",
+   website:"https://www.kpit.com"},
+  {name:"Persistent Systems", area:"Senapati Bapat Road", type:"Startup", stage:"Public", sector:"SaaS",
+   lat:18.5310, lng:73.8290, blurb:"Pune-headquartered global software and technology services company, founded 1990.",
+   website:"https://www.persistent.com"},
+  {name:"Quick Heal Technologies", area:"Pashan", type:"Startup", stage:"Public", sector:"Cybersecurity",
+   lat:18.5310, lng:73.7827, blurb:"Cybersecurity and antivirus software provider, listed on the NSE/BSE.",
+   website:"https://www.quickheal.com"},
+  {name:"AgroStar", area:"Wakad", type:"Startup", stage:"Series C+", sector:"Agritech",
+   lat:18.5993, lng:73.7629, blurb:"Agritech platform giving farmers real-time prices, weather advice and access to farm inputs.",
+   website:"https://www.agrostar.in"},
+  {name:"Blue Energy Motors", area:"Wadgaon Sheri", type:"Startup", stage:"Series B", sector:"Mobility",
+   lat:18.5498, lng:73.9105, blurb:"Manufactures LNG- and electric-powered heavy trucks for cleaner long-haul transport.",
+   website:"https://www.blueenergymotors.com"},
+  {name:"Haber", area:"Kharadi", type:"Startup", stage:"Series C", sector:"Deeptech",
+   lat:18.5515, lng:73.9430, blurb:"Industrial AI and process-automation platform for manufacturing plants.",
+   website:"https://www.haberwater.com"},
+  {name:"Lentra", area:"Kharadi", type:"Startup", stage:"Series B", sector:"Fintech",
+   lat:18.5535, lng:73.9455, blurb:"Digital lending infrastructure platform for banks and NBFCs.",
+   website:"https://www.lentra.ai"},
+  {name:"Loop Health", area:"Koregaon Park", type:"Startup", stage:"Series B", sector:"Healthtech",
+   lat:18.5362, 	lng:73.8938, blurb:"Combines health insurance with a primary-care delivery layer for employees.",
+   website:"https://www.loophealth.com"},
+  {name:"Intangles", area:"Baner", type:"Startup", stage:"Series B", sector:"Deeptech",
+   lat:18.5620, lng:73.7810, blurb:"AI-driven predictive maintenance and fleet-management, with proprietary hardware.",
+   website:"https://www.intangles.ai"},
+  {name:"Scalefusion", area:"Baner", type:"Startup", stage:"Series A", sector:"SaaS",
+   lat:18.5560, lng:73.7900, blurb:"Unified endpoint management platform for company-owned and BYOD devices.",
+   website:"https://www.scalefusion.com"},
+  {name:"Venture Center", area:"Pashan", type:"VC", stage:"Institutional", sector:"Other",
+   lat:18.5330, lng:73.8060, blurb:"Non-profit tech incubator at NCL, backing deeptech and life-sciences startups since 2007.",
+   website:"https://www.venturecenter.co.in"},
+  {name:"Credicus", area:"Kothrud", type:"Startup", stage:"Seed", sector:"Fintech",
+   lat:18.5074, lng:73.8077, blurb:"Financial and business intelligence solutions for enterprise reporting and decisions.",
+   website:"https://www.credicus.in"},
+  {name:"ChiStats", area:"Kothrud", type:"Startup", stage:"Seed", sector:"AI",
+   lat:18.5060, lng:73.8110, blurb:"Data analytics and AI company offering predictive analytics and vision analytics.",
+   website:"https://www.chistats.ai"},
+  {name:"Victrix Systems & Labs", area:"Baner", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5605, lng:73.7790, blurb:"Cloud consulting and enterprise mobility solutions.",
+   website:"https://www.victrixsystems.com"},
+  {name:"Harbinger Group", area:"Kothrud", type:"Startup", stage:"Bootstrapped", sector:"Edtech",
+   lat:18.5040, lng:73.8140, blurb:"HR and eLearning software, crafting solutions for how people work and learn.",
+   website:"https://www.harbingergroup.com"},
+  {name:"Mithi Software Technologies", area:"Baner", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5640, lng:73.7830, blurb:"Cloud-based enterprise software and messaging solutions.",
+   website:"https://www.mithi.com"},
+  {name:"Talentica Software", area:"Baner", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5570, lng:73.7940, blurb:"Product engineering partner building software for startups.",
+   website:"https://www.talentica.com"},
+  {name:"NXG Labs", area:"Hinjewadi", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5940, lng:73.7350, blurb:"Software and solution design & development company.",
+   website:"https://www.nxglabs.in"},
+  {name:"Exacore IT Solutions", area:"Hinjewadi", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5880, lng:73.7420, blurb:"Digital transformation and managed ERP/cloud services.",
+   website:"https://www.exacoreitsolutions.com"},
+  {name:"Synerzip", area:"Kothrud", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5100, lng:73.8040, blurb:"Distributed agile software product development teams.",
+   website:"https://www.synerzip.com"},
+  {name:"Compulink Systems", area:"Hinjewadi", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5960, lng:73.7460, blurb:"IT services and enterprise software solutions provider.",
+   website:"https://www.compulinkgroup.com"},
+  {name:"Fibe (EarlySalary)", area:"Viman Nagar", type:"Startup", stage:"Series C+", sector:"Fintech",
+   lat:18.5710, lng:73.9160, blurb:"Digital lending app (formerly EarlySalary) offering instant personal loans, cash advances and BNPL.",
+   founded:"2015", website:"https://www.fibe.in"},
+  {name:"SarvaGram", area:"Baner", type:"Startup", stage:"Series C+", sector:"Fintech",
+   lat:18.5615, lng:73.7820, blurb:"Rural-focused NBFC providing credit, micro-loans and insurance to underserved households.",
+   founded:"2018", website:"https://www.sarvagram.com"},
+  {name:"SEDEMAC", area:"Baner", type:"Startup", stage:"Public", sector:"Deeptech",
+   lat:18.5625, lng:73.7870, blurb:"Designs electronic control units and sensors for two-wheelers and off-road/industrial engines; listed on NSE/BSE.",
+   founded:"2007", website:"https://www.sedemac.com"},
+  {name:"Ecozen Solutions", area:"Baner", type:"Startup", stage:"Series C+", sector:"Agritech",
+   lat:18.5645, lng:73.7900, blurb:"Solar-powered cold storage (Ecofrost) and irrigation systems (Ecotron) that cut post-harvest losses for farmers.",
+   website:"https://www.ecozensolutions.com"},
+  {name:"EKA Mobility", area:"Chakan", type:"Startup", stage:"Series C+", sector:"Mobility",
+   lat:18.7530, lng:73.8600, blurb:"Manufactures electric buses, trucks and light commercial vehicles, from 3-seaters to 125-seat buses.",
+   founded:"2019", website:"https://www.ekamobility.com"},
+  {name:"Bike Bazaar (WheelsEMI)", area:"Baner", type:"Startup", stage:"Series C+", sector:"Fintech",
+   lat:18.5580, lng:73.7810, blurb:"Financing and marketplace platform for new, used and electric two-wheelers across India.",
+   founded:"2017", website:"https://www.wheelsemi.com"},
+  {name:"Faasos", area:"Baner", type:"Startup", stage:"Series C+", sector:"D2C",
+   lat:18.5560, lng:73.7830, blurb:"Multi-brand cloud kitchen chain for wraps and rolls, part of the Rebel Foods group; started as a Pune rolls shop in 2004.",
+   founded:"2011", website:"https://www.faasos.com"},
+  {name:"Altum Credo", area:"Baner", type:"Startup", stage:"Series B", sector:"Fintech",
+   lat:18.5600, lng:73.7940, blurb:"Digitally-powered affordable housing finance company for first-time, low-income homeowners.",
+   founded:"2017", website:"https://altumcredo.co.in"},
+  {name:"Infinite Uptime", area:"Aundh", type:"Startup", stage:"Series A", sector:"Deeptech",
+   lat:18.5636, lng:73.8074, blurb:"Industrial IoT platform for predictive maintenance and condition monitoring in manufacturing plants.",
+   website:"https://www.infinite-uptime.com"},
+  {name:"MarketsandMarkets", area:"Magarpatta", type:"Startup", stage:"Series C", sector:"Other",
+   lat:18.5150, lng:73.9260, blurb:"B2B market research and business intelligence firm publishing industry reports across sectors.",
+   founded:"2009", website:"https://www.marketsandmarkets.com"},
+  {name:"Biorad Medisys", area:"Pashan", type:"Startup", stage:"Bootstrapped", sector:"Healthtech",
+   lat:18.5300, lng:73.7850, blurb:"Manufactures knee implants and surgical devices, with integrated facilities in Pune and Bengaluru.",
+   founded:"2007", website:"https://www.bioradmedisys.com"},
+  {name:"Palmonas", area:"Baner", type:"Startup", stage:"Series B", sector:"D2C",
+   lat:18.5570, lng:73.7870, blurb:"Demi-fine jewellery brand making waterproof, anti-tarnish gold-plated pieces for everyday wear.",
+   website:"https://www.palmonas.com"},
+  {name:"LoanTap", area:"Kalyani Nagar", type:"Startup", stage:"Series B", sector:"Fintech",
+   lat:18.5500, lng:73.9040, blurb:"Digital lending platform offering personal, business and two-wheeler loan products.",
+   founded:"2016", website:"https://www.loantap.in"},
+  {name:"Unbox Robotics", area:"Kothrud", type:"Startup", stage:"Series B", sector:"Logistics",
+   lat:18.5090, lng:73.8090, blurb:"AI-powered robotic parcel-sorting systems that cut warehouse footprint and boost throughput.",
+   founded:"2019", website:"https://www.unboxrobotics.com"},
+  {name:"Easebuzz", area:"Hinjewadi", type:"Startup", stage:"Series A", sector:"Fintech",
+   lat:18.5900, lng:73.7410, blurb:"Full-stack payments platform for collections, payouts, reconciliation and connected banking.",
+   founded:"2014", website:"https://easebuzz.in"},
+  {name:"Krsnaa Diagnostics", area:"Chinchwad", type:"Startup", stage:"Public", sector:"Healthtech",
+   lat:18.6298, lng:73.7997, blurb:"Runs a pan-India chain of radiology and pathology diagnostic centres; listed on NSE/BSE.",
+   founded:"2011", website:"https://www.krsnaadiagnostics.com"},
+  {name:"Two Brothers Organic Farms", area:"Magarpatta", type:"Startup", stage:"Series B", sector:"Agritech",
+   lat:18.5165, lng:73.9285, blurb:"Organic food brand producing cultured ghee, stoneground flour and cold-pressed oils from its own farms.",
+   founded:"2016", website:"https://twobrothersindiashop.com"},
+  {name:"Ugaoo", area:"Talegaon", type:"Startup", stage:"Series A", sector:"Agritech",
+   lat:18.7360, lng:73.6753, blurb:"Online plant and gardening brand growing its own stock across a 25-acre farm near Pune.",
+   website:"https://www.ugaoo.com"},
+  {name:"Quickshift", area:"Shivajinagar", type:"Startup", stage:"Bootstrapped", sector:"Logistics",
+   lat:18.5300, lng:73.8460, blurb:"Warehousing and e-commerce fulfilment operator with self-owned facilities across India.",
+   founded:"2014", website:"https://www.quickshift.in"},
+  {name:"EMotorad", area:"Mulshi", type:"Startup", stage:"Series B", sector:"Mobility",
+   lat:18.6015, lng:73.6820, blurb:"Direct-to-consumer electric cycle brand for commuters, adventure riders and casual users.",
+   founded:"2020", website:"https://www.emotorad.com"},
+  {name:"iMocha", area:"Baner", type:"Startup", stage:"Series A", sector:"SaaS",
+   lat:18.5590, lng:73.7930, blurb:"AI-powered skills assessment platform used by talent teams for hiring and workforce upskilling.",
+   founded:"2015", website:"https://www.imocha.io"},
+  {name:"Kinetic Green", area:"Chinchwad", type:"Startup", stage:"Bootstrapped", sector:"Mobility",
+   lat:18.6270, lng:73.7960, blurb:"Manufactures electric two- and three-wheelers, part of the Firodia Group's Kinetic brand.",
+   founded:"2011", website:"https://www.kineticgreen.com"},
+  {name:"Matel", area:"Hinjewadi", type:"Startup", stage:"Series B", sector:"Mobility",
+   lat:18.5895, lng:73.7400, blurb:"Designs energy-efficient motors, controllers and integrated EV powertrains for two-, three- and industrial vehicles.",
+   founded:"2017", website:"https://www.matel.co.in"},
+  {name:"BiofuelCircle", area:"Aundh", type:"Startup", stage:"Seed", sector:"Other",
+   lat:18.5650, lng:73.8060, blurb:"Online marketplace connecting farmers and suppliers of biomass and biofuels with industrial buyers.",
+   founded:"2020", website:"https://www.biofuelcircle.com"},
+  {name:"Econovus Packaging", area:"Chakan", type:"Startup", stage:"Bootstrapped", sector:"Other",
+   lat:18.7560, lng:73.8600, blurb:"Designs and manufactures sustainable, export-grade industrial packaging solutions.",
+   founded:"2019", website:"https://econovus.co.in"},
+  {name:"Osfin", area:"Magarpatta", type:"Startup", stage:"Series A", sector:"Fintech",
+   lat:18.5140, lng:73.9250, blurb:"Fin-ops platform automating reconciliation, payouts and commission calculations for finance teams.",
+   founded:"2021", website:"https://www.osfin.ai"},
+  {name:"FreightFox", area:"Baner", type:"Startup", stage:"Seed", sector:"Logistics",
+   lat:18.5610, lng:73.7900, blurb:"Transportation management and control-tower platform helping enterprises run freight operations.",
+   founded:"2020", website:"https://www.freightfox.ai"},
+  {name:"Shoptimize", area:"Aundh", type:"Startup", stage:"Series A", sector:"SaaS",
+   lat:18.5640, lng:73.8090, blurb:"AI-powered e-commerce platform for D2C brands, covering storefronts, payments and logistics; acquired by Graas in 2022.",
+   founded:"2012", website:"https://www.shoptimize.in"},
+  {name:"Pariksha.co", area:"Kharadi", type:"Startup", stage:"Series A", sector:"Edtech",
+   lat:18.5525, lng:73.9420, blurb:"Vernacular edtech platform offering affordable online test preparation for India's mobile-first learners.",
+   founded:"2015", website:"https://www.pariksha.co"},
+  {name:"Thingsmeet Solutions", area:"Baner", type:"Startup", stage:"Bootstrapped", sector:"Healthtech",
+   lat:18.5615, lng:73.7845, blurb:"Builds digital-health and IoT solutions connecting stakeholders across the healthcare value chain.",
+   founded:"2015", website:"https://www.thingsmeet.com"},
+  {name:"DINGG", area:"Baner", type:"Startup", stage:"Seed", sector:"SaaS",
+   lat:18.5580, lng:73.7860, blurb:"Salon, spa and beauty-clinic management software for scheduling, client records and payments.",
+   founded:"2018", website:"https://dingg.app"},
+  {name:"Metamorphosys Technologies", area:"Baner", type:"Startup", stage:"Seed", sector:"Fintech",
+   lat:18.5605, lng:73.7920, blurb:"No-code insurtech platform helping insurers configure, launch and underwrite new products.",
+   founded:"2016", website:"https://metamorphtech.com"},
+  {name:"Nutrifresh", area:"Kharadi", type:"Startup", stage:"Seed", sector:"Agritech",
+   lat:18.5550, lng:73.9400, blurb:"Grows pesticide-free produce using hydroponic and controlled-environment farming, sold farm-to-door.",
+   founded:"2019", website:"https://www.nutrifresh.co.in"},
+  {name:"Townscript", area:"Baner", type:"Startup", stage:"Seed", sector:"SaaS",
+   lat:18.5595, lng:73.7960, blurb:"Self-serve event ticketing and registration platform for organisers; majority-owned by BookMyShow.",
+   founded:"2012", website:"https://www.townscript.com"},
+  {name:"HostnExtra Technologies", area:"Kothrud", type:"Startup", stage:"Bootstrapped", sector:"SaaS",
+   lat:18.5060, lng:73.8060, blurb:"Web hosting, dedicated servers and custom web/app development for small businesses.",
+   founded:"2016", website:"https://hostnextra.com"},
+  {name:"Invisel", area:"Baner", type:"Startup", stage:"Seed", sector:"D2C",
+   lat:18.5630, lng:73.7880, blurb:"India's first nano-coating brand, protecting home surfaces — glass, tile, fabric, marble — from stains and wear.",
+   founded:"2024", website:"https://www.invisel.in"},
+  {name:"Olee Space", area:"Baner", type:"Startup", stage:"Seed", sector:"Deeptech",
+   lat:18.5650, lng:73.7930, blurb:"Photonics and defence-tech startup building laser communication and directed-energy systems.",
+   founded:"2023", website:"https://www.olee.space"},
+  {name:"Authentica", area:"Kothrud", type:"Startup", stage:"Bootstrapped", sector:"Edtech",
+   lat:18.5045, lng:73.8090, blurb:"Designs short-term experiential study-abroad programs for students across Asia.",
+   founded:"2013", website:"https://authentica.com"},
+  {name:"Kraft Powercon", area:"Satara Road", type:"Startup", stage:"Bootstrapped", sector:"Other",
+   lat:18.4970, lng:73.8570, blurb:"Manufactures industrial and electroplating rectifiers and hydrogen power solutions.",
+   founded:"1970", website:"https://kraftpowercon.com"},
+  {name:"Punekar News", area:"Shivajinagar", type:"Startup", stage:"Bootstrapped", sector:"Other",
+   lat:18.5280, lng:73.8500, blurb:"English-language hyperlocal news portal covering Pune and Pimpri-Chinchwad since 2015.",
+   founded:"2015", website:"https://www.punekarnews.in"}
+];
+
+function unique(arr){ return [...new Set(arr)].sort(); }
+
+function populateSelect(id, values, label){
+  const sel = document.getElementById(id);
+  sel.innerHTML = `<option value="">All ${label}</option>` +
+    values.map(v => `<option value="${v}">${v}</option>`).join("");
+}
+populateSelect("f-type", unique(DATA.map(d=>d.type)), "types");
+populateSelect("f-area", unique(DATA.map(d=>d.area)), "areas");
+populateSelect("f-stage", unique(DATA.map(d=>d.stage)), "stages");
+populateSelect("f-sector", unique(DATA.map(d=>d.sector)), "sectors");
+
+let currentView = "map";
+let map, markersLayer;
+
+function initMap(){
+  map = L.map('mapview', {scrollWheelZoom:false, zoomControl:false}).setView([18.5450, 73.8500], 12);
+
+  let pinchAccum = 0;
+  const PINCH_STEP = 40;
+  map.getContainer().addEventListener('wheel', function(e){
+    if(e.ctrlKey){
+      e.preventDefault();
+      pinchAccum += e.deltaY;
+      while(pinchAccum <= -PINCH_STEP){ map.zoomIn(); pinchAccum += PINCH_STEP; }
+      while(pinchAccum >= PINCH_STEP){ map.zoomOut(); pinchAccum -= PINCH_STEP; }
+    }
+  }, {passive:false});
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    maxZoom: 19
+  }).addTo(map);
+  markersLayer = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: function(cluster){
+      const count = cluster.getChildCount();
+      const size = count >= 20 ? 46 : count >= 10 ? 40 : 34;
+      return L.divIcon({
+        className: '',
+        html: `<div class="cluster-badge" style="width:${size}px;height:${size}px;font-size:${size*0.36}px;">${count}</div>`,
+        iconSize: [size, size]
+      });
+    }
+  }).addTo(map);
+
+  const FullscreenControl = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd: function(){
+      const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control fullscreen-control');
+      const link = L.DomUtil.create('a', '', container);
+      link.href = '#';
+      link.title = 'Toggle fullscreen';
+      link.innerHTML = '&#10529;';
+      L.DomEvent.on(link, 'click', L.DomEvent.stop).on(link, 'click', toggleMapFullscreen);
+      return container;
+    }
+  });
+  map.addControl(new FullscreenControl());
+}
+
+function toggleMapFullscreen(){
+  const el = document.getElementById('mapview');
+  const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+  if(!isFull){
+    (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  }
+}
+["fullscreenchange","webkitfullscreenchange"].forEach(evt=>{
+  document.addEventListener(evt, ()=> setTimeout(()=> map && map.invalidateSize(), 120));
+});
+
+const LOGO_DEV_TOKEN = "pk_Z9wOJBKRR3SBZcL5GZlQoA";
+
+function domainOf(website){
+  if(!website) return null;
+  try{ return new URL(website).hostname.replace(/^www\./,''); }
+  catch(e){ return null; }
+}
+
+function pinIcon(d){
+  const isVC = d.type === "VC";
+  const color = isVC ? "#A8432E" : (SECTOR_COLORS[d.sector] || "#8A8F79");
+  const size = isVC ? 34 : 30;
+  const initial = d.name.trim().charAt(0).toUpperCase();
+  const domain = domainOf(d.website);
+  const imgHtml = domain
+    ? `<img src="https://img.logo.dev/${domain}?token=${LOGO_DEV_TOKEN}&size=64&format=png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+    : "";
+  return L.divIcon({
+    className: '',
+    html: `<div class="logo-pin" style="width:${size}px;height:${size}px;border-color:${color};">
+             ${imgHtml}
+             <div class="logo-pin-fallback" style="display:${domain ? 'none' : 'flex'};background:${color};font-size:${size*0.42}px;">${initial}</div>
+           </div>`,
+    iconSize: [size,size],
+    iconAnchor: [size/2,size/2]
+  });
+}
+
+function currentFilters(){
+  return {
+    type: document.getElementById("f-type").value,
+    area: document.getElementById("f-area").value,
+    stage: document.getElementById("f-stage").value,
+    sector: document.getElementById("f-sector").value
+  };
+}
+
+function filteredData(){
+  const f = currentFilters();
+  return DATA.filter(d =>
+    (!f.type || d.type === f.type) &&
+    (!f.area || d.area === f.area) &&
+    (!f.stage || d.stage === f.stage) &&
+    (!f.sector || d.sector === f.sector)
+  );
+}
+
+function render(){
+  const rows = filteredData();
+  document.getElementById("count").textContent = rows.length;
+
+  markersLayer.clearLayers();
+  rows.forEach((d, i)=>{
+    const idx = DATA.indexOf(d);
+    const marker = L.marker([d.lat, d.lng], {icon: pinIcon(d)});
+    marker.bindPopup(
+      `<div class="popup-name">${d.name}</div>
+       <div class="popup-tags">
+         <span class="tag sector">${d.sector}</span>
+         <span class="tag stage">${d.stage}</span>
+       </div>
+       <div class="popup-blurb">${d.blurb}<br><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${d.area}</span></div>
+       <span class="popup-more" onclick="openDetail(${idx})">More details &rarr;</span>`
+    );
+    marker.addTo(markersLayer);
+  });
+
+  const grid = document.getElementById("gridview");
+  if(rows.length === 0){
+    grid.innerHTML = `<div class="empty">No startups match these filters yet.<br>Try widening your search, or add one via "Submit a startup".</div>`;
+  } else {
+    grid.innerHTML = rows.map(d => {
+      const idx = DATA.indexOf(d);
+      return `
+      <div class="card" onclick="openDetail(${idx})">
+        <div class="card-top">
+          <div>
+            <div class="card-name">${d.name}</div>
+            <div class="card-area">${d.area}</div>
+          </div>
+          <div class="type-dot" style="background:${d.type==='VC' ? '#A8432E' : (SECTOR_COLORS[d.sector]||'#8A8F79')};"></div>
+        </div>
+        <div class="card-blurb">${d.blurb}</div>
+        <div class="tag-row">
+          <span class="tag ${d.type==='VC' ? 'vc' : 'sector'}">${d.sector}</span>
+          <span class="tag stage">${d.stage}</span>
+        </div>
+      </div>
+    `;}).join("");
+  }
+}
+
+function openDetail(idx){
+  if(map) map.closePopup();
+  const d = DATA[idx];
+  const facts = [];
+  if(d.founded) facts.push(`<div><div class="modal-label">Founded</div><div class="modal-value">${d.founded}</div></div>`);
+  if(d.founders) facts.push(`<div><div class="modal-label">Founders</div><div class="modal-value">${d.founders}</div></div>`);
+  document.getElementById("modal-content").innerHTML = `
+    <div class="modal-eyebrow">${d.area} &middot; ${d.type}</div>
+    <div class="modal-name">${d.name}</div>
+    <div class="modal-tags">
+      <span class="tag ${d.type==='VC' ? 'vc' : 'sector'}">${d.sector}</span>
+      <span class="tag stage">${d.stage}</span>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">About</div>
+      <div class="modal-value">${d.blurb}</div>
+    </div>
+    ${facts.length ? `<div class="modal-facts">${facts.join("")}</div>` : ""}
+    ${d.website ? `<a class="modal-link" href="${d.website}" target="_blank" rel="noopener">Visit website &rarr;</a>` : ""}
+  `;
+  document.getElementById("modal-backdrop").classList.add("open");
+}
+function closeDetail(){
+  document.getElementById("modal-backdrop").classList.remove("open");
+}
+document.getElementById("modal-close").addEventListener("click", closeDetail);
+document.getElementById("modal-backdrop").addEventListener("click", (e)=>{
+  if(e.target.id === "modal-backdrop") closeDetail();
+});
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeDetail(); });
+
+["f-type","f-area","f-stage","f-sector"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", render);
+});
+
+document.getElementById("btn-map").addEventListener("click", ()=>{
+  currentView="map";
+  document.getElementById("btn-map").classList.add("active");
+  document.getElementById("btn-grid").classList.remove("active");
+  document.getElementById("mapview").style.display="block";
+  document.getElementById("gridview").style.display="none";
+  setTimeout(()=>map.invalidateSize(), 50);
+});
+document.getElementById("btn-grid").addEventListener("click", ()=>{
+  currentView="grid";
+  document.getElementById("btn-grid").classList.add("active");
+  document.getElementById("btn-map").classList.remove("active");
+  document.getElementById("gridview").style.display="grid";
+  document.getElementById("mapview").style.display="none";
+});
+
+initMap();
+render();
+</script>
+</body>
+</html>

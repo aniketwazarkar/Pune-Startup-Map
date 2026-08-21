@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:exacoreitsolutions.com)",
+      "WebFetch(domain:www.quickheal.com)",
+      "WebFetch(domain:www.credicus.in)",
+      "WebFetch(domain:www.quickheal.co.in)",
+      "WebFetch(domain:agrostar.in)"
+    ]
+  }
+}

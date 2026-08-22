@@ -10,7 +10,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGIN
-        value: https://frontend-three-flame-98.vercel.app
+        value: https://punestartupmap.vercel.app
       - key: MONGODB_URI
         sync: false
       - key: LOGO_DEV_TOKEN

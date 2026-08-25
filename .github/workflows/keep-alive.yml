@@ -1,0 +1,43 @@
+name: Keep Backend Warm
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        env:
+          BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+        run: |
+          if [ -z "$BACKEND_HEALTH_URL" ]; then
+            echo "::error::BACKEND_HEALTH_URL repo variable is not set."
+            exit 1
+          fi
+
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Target URL: $BACKEND_HEALTH_URL"
+
+          http_code=$(curl -s -o response.txt -w "%{http_code}" --max-time 20 \
+            --connect-timeout 20 -D headers.txt "$BACKEND_HEALTH_URL") || curl_exit=$?
+
+          echo "HTTP status: ${http_code:-none}"
+          echo "--- Response headers ---"
+          cat headers.txt 2>/dev/null || echo "(no headers captured)"
+          echo "--- Response body ---"
+          cat response.txt 2>/dev/null || echo "(no body captured)"
+
+          if [ -n "$curl_exit" ]; then
+            echo "::error::curl failed with exit code $curl_exit (likely timeout or connection error - possible cold start taking longer than 20s)"
+            exit "$curl_exit"
+          fi
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Health check returned non-2xx status: $http_code"
+            exit 1
+          fi
+
+          echo "Ping succeeded"

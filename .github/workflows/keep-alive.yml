@@ -21,23 +21,29 @@ jobs:
           echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo "Target URL: $BACKEND_HEALTH_URL"
 
-          http_code=$(curl -s -o response.txt -w "%{http_code}" --max-time 20 \
-            --connect-timeout 20 -D headers.txt "$BACKEND_HEALTH_URL") || curl_exit=$?
+          max_attempts=6
+          attempt=1
+          until [ "$attempt" -gt "$max_attempts" ]; do
+            echo "--- Attempt $attempt/$max_attempts ---"
+            curl_exit=0
+            http_code=$(curl -s -o response.txt -w "%{http_code}" --max-time 30 \
+              --connect-timeout 15 -D headers.txt "$BACKEND_HEALTH_URL") || curl_exit=$?
 
-          echo "HTTP status: ${http_code:-none}"
-          echo "--- Response headers ---"
+            if [ "$curl_exit" -eq 0 ] && [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              echo "HTTP status: $http_code"
+              cat response.txt 2>/dev/null
+              echo "Ping succeeded on attempt $attempt"
+              exit 0
+            fi
+
+            echo "HTTP status: ${http_code:-none}, curl exit: $curl_exit (likely still cold-starting)"
+            attempt=$((attempt + 1))
+            sleep 15
+          done
+
+          echo "::error::Health check failed after $max_attempts attempts"
+          echo "--- Last response headers ---"
           cat headers.txt 2>/dev/null || echo "(no headers captured)"
-          echo "--- Response body ---"
+          echo "--- Last response body ---"
           cat response.txt 2>/dev/null || echo "(no body captured)"
-
-          if [ -n "$curl_exit" ]; then
-            echo "::error::curl failed with exit code $curl_exit (likely timeout or connection error - possible cold start taking longer than 20s)"
-            exit "$curl_exit"
-          fi
-
-          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-            echo "::error::Health check returned non-2xx status: $http_code"
-            exit 1
-          fi
-
-          echo "Ping succeeded"
+          exit 1

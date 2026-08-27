@@ -317,7 +317,8 @@ footer{
   line-height:1.6;
   text-align:center;
 }
-footer a{color:var(--teal);}
+footer a{color:var(--teal);white-space:nowrap;}
+footer a svg{vertical-align:-2px;margin-right:3px;}
 
 .popup-more{
   display:inline-block;

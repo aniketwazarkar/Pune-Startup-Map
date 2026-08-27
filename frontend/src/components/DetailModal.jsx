@@ -1,3 +1,4 @@
+// deploy check: frontend
 import { useEffect } from "react";
 
 export default function DetailModal({ startup, onClose }) {

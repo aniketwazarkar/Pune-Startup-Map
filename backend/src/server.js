@@ -1,3 +1,4 @@
+// deploy check: backend
 import { config } from "./config/env.js";
 import { connectDB } from "./db/connect.js";
 import { app } from "./app.js";

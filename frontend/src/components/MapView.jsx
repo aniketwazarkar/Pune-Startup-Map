@@ -30,10 +30,21 @@ export default function MapView({ startups, visible, onSelect }) {
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-      maxZoom: 19,
-    }).addTo(map);
+    const cartoKey = import.meta.env.CARTO_KEY;
+    if (cartoKey) {
+      L.tileLayer(
+        `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoKey}`,
+        {
+          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+          maxZoom: 19,
+        }
+      ).addTo(map);
+    } else {
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
+      }).addTo(map);
+    }
 
     const markersLayer = L.markerClusterGroup({
       maxClusterRadius: 50,

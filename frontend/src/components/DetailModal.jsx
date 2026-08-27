@@ -41,9 +41,21 @@ export default function DetailModal({ startup, onClose }) {
             )}
           </div>
         )}
-        {d.website && (
-          <a className="modal-link" href={d.website} target="_blank" rel="noopener noreferrer">Visit website &rarr;</a>
-        )}
+        <div className="modal-links">
+          {d.website && (
+            <a className="btn tag-btn sector" href={d.website} target="_blank" rel="noopener noreferrer">Visit website &rarr;</a>
+          )}
+          {d.name && (
+            <a
+              className="btn tag-btn stage"
+              href={`https://www.google.com/search?q=${encodeURIComponent(`${d.name} pune careers jobs`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View open jobs &rarr;
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchPending, approveStartup, rejectStartup, adminLogin } from "./api/startups";
+import { fetchPending, fetchApproved, fetchRejected, approveStartup, rejectStartup, adminLogin } from "./api/startups";
 
 const STORAGE_KEY = "pst_admin_token";
 
@@ -11,15 +11,22 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [tab, setTab] = useState("pending"); // "pending" | "approved" | "rejected"
   const [pending, setPending] = useState([]);
+  const [approved, setApproved] = useState([]);
+  const [rejected, setRejected] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   function load(t) {
     setLoading(true);
     setError(null);
-    fetchPending(t)
-      .then(setPending)
+    Promise.all([fetchPending(t), fetchApproved(t), fetchRejected(t)])
+      .then(([p, a, r]) => {
+        setPending(p);
+        setApproved(a);
+        setRejected(r);
+      })
       .catch((err) => {
         setError(err.message);
         if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized")) {
@@ -61,7 +68,7 @@ export default function AdminPage() {
   }
 
   async function handleReject(id) {
-    if (!confirm("Reject and delete this submission?")) return;
+    if (!confirm("Reject this submission?")) return;
     await rejectStartup(id, token);
     load(token);
   }
@@ -73,6 +80,8 @@ export default function AdminPage() {
     setUsername("");
     setPassword("");
     setPending([]);
+    setApproved([]);
+    setRejected([]);
   }
 
   if (!token) {
@@ -121,16 +130,42 @@ export default function AdminPage() {
     );
   }
 
+  const tabs = [
+    { key: "pending", label: "Pending", rows: pending },
+    { key: "approved", label: "Approved", rows: approved },
+    { key: "rejected", label: "Rejected", rows: rejected },
+  ];
+  const activeRows = tabs.find((t) => t.key === tab).rows;
+  const emptyText = {
+    pending: "Nothing pending review.",
+    approved: "No approved submissions yet.",
+    rejected: "No rejected submissions yet.",
+  }[tab];
+
   return (
     <div className="admin-wrap">
       <div className="admin-header">
-        <h1>Pending submissions</h1>
+        <h1>Submissions</h1>
         <button type="button" className="btn" onClick={handleLogout}>Log out</button>
       </div>
+
+      <div className="admin-login-tabs">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            className={tab === t.key ? "active" : ""}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label} ({t.rows.length})
+          </button>
+        ))}
+      </div>
+
       {loading && <p>Loading…</p>}
       {error && <p className="form-error">{error}</p>}
-      {!loading && pending.length === 0 && <p>Nothing pending review.</p>}
-      {pending.map((d) => (
+      {!loading && activeRows.length === 0 && <p>{emptyText}</p>}
+      {activeRows.map((d) => (
         <div className="admin-row" key={d._id}>
           <div>
             <strong>{d.name}</strong> — {d.area} · {d.sector} · {d.stage}
@@ -138,8 +173,12 @@ export default function AdminPage() {
             {d.website && <div style={{ fontSize: 12, marginTop: 4 }}><a href={d.website} target="_blank" rel="noopener noreferrer">{d.website}</a></div>}
           </div>
           <div className="admin-actions">
-            <button type="button" className="btn approve" onClick={() => handleApprove(d._id)}>Approve</button>
-            <button type="button" className="btn reject" onClick={() => handleReject(d._id)}>Reject</button>
+            {tab !== "approved" && (
+              <button type="button" className="btn approve" onClick={() => handleApprove(d._id)}>Approve</button>
+            )}
+            {tab !== "rejected" && (
+              <button type="button" className="btn reject" onClick={() => handleReject(d._id)}>Reject</button>
+            )}
           </div>
         </div>
       ))}

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   listApproved,
   listPending,
+  listRejected,
   createSubmission,
   approveSubmission,
   rejectSubmission,
@@ -15,6 +16,7 @@ router.get("/", listApproved);
 router.post("/", submitRateLimit, createSubmission);
 
 router.get("/pending", requireAdmin, listPending);
+router.get("/rejected", requireAdmin, listRejected);
 router.patch("/:id/approve", requireAdmin, approveSubmission);
 router.delete("/:id", requireAdmin, rejectSubmission);
 

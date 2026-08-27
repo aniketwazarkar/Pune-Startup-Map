@@ -18,6 +18,11 @@ export async function listPending(req, res) {
   res.json(docs.map(withLogoUrl));
 }
 
+export async function listRejected(req, res) {
+  const docs = await Startup.find({ status: "rejected" }).sort({ updatedAt: -1 });
+  res.json(docs.map(withLogoUrl));
+}
+
 export async function createSubmission(req, res) {
   const body = req.body || {};
 
@@ -66,7 +71,11 @@ export async function approveSubmission(req, res) {
 }
 
 export async function rejectSubmission(req, res) {
-  const doc = await Startup.findByIdAndDelete(req.params.id);
+  const doc = await Startup.findByIdAndUpdate(
+    req.params.id,
+    { status: "rejected" },
+    { new: true }
+  );
   if (!doc) return res.status(404).json({ error: "Not found" });
-  res.json({ ok: true });
+  res.json(withLogoUrl(doc));
 }

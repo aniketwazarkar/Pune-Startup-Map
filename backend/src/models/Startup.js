@@ -15,7 +15,7 @@ const startupSchema = new Schema(
     founded: { type: String, trim: true },
     founders: { type: String, trim: true },
     website: { type: String, trim: true },
-    status: { type: String, enum: ["approved", "pending"], default: "pending", required: true },
+    status: { type: String, enum: ["approved", "pending", "rejected"], default: "pending", required: true },
   },
   { timestamps: true }
 );

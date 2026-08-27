@@ -27,6 +27,18 @@ export function fetchPending(adminToken) {
   }).then(handle);
 }
 
+export function fetchApproved(adminToken) {
+  return fetch(`${API_URL}/startups`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  }).then(handle);
+}
+
+export function fetchRejected(adminToken) {
+  return fetch(`${API_URL}/startups/rejected`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  }).then(handle);
+}
+
 export function approveStartup(id, adminToken) {
   return fetch(`${API_URL}/startups/${id}/approve`, {
     method: "PATCH",
